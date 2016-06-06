@@ -131,7 +131,7 @@ namespace NoobRenekton
             {
                 if (E.IsReady() && (_menu.Item("useE").GetValue<bool>()))
                 {
-                    E.Cast();
+                    E.Cast(target);
                 }
                 if (Q.IsReady() && (_menu.Item("useQ").GetValue<bool>()) && !W.IsReady() && !IsWUsed)
                 {
