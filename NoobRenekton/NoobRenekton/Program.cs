@@ -12,10 +12,8 @@ namespace NoobRenekton
 {
     class Program
     {
-        private static Obj_AI_Hero Player
-        {
-            get { return ObjectManager.Player; }
-        }
+        private static Obj_AI_Hero Player = ObjectManager.Player;
+
         private static readonly Obj_AI_Hero[] AllEnemy = HeroManager.Enemies.ToArray();
         private static Orbwalking.Orbwalker Orbwalker;
 
@@ -127,7 +125,7 @@ namespace NoobRenekton
             Obj_AI_Hero target = TargetSelector.GetTarget(450, TargetSelector.DamageType.Physical);
 
             // ACTUAL COMBO
-            if (target != null && !target.IsZombie)
+            if (target != null && !target.IsZombie && !target.IsInvulnerable)
             {
                 if (E.IsReady() && (_menu.Item("useE").GetValue<bool>()))
                 {
@@ -158,9 +156,24 @@ namespace NoobRenekton
             {
                 if (sender.IsMe && args.SData.IsAutoAttack())
                 {
+                    Obj_AI_Hero target = TargetSelector.GetTarget(300, TargetSelector.DamageType.Physical);
                     if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo || Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
                     {
                         if (_menu.Item("useW").GetValue<bool>() && W.IsReady()) W.Cast();
+
+                        if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo)
+                        {
+                            if (hydra.IsOwned() && Player.Distance(target) < hydra.Range && hydra.IsReady() && !W.IsReady()
+                                && !IsWUsed && Q.IsReady())
+                                hydra.Cast();
+                            if (tiamat.IsOwned() && Player.Distance(target) < tiamat.Range && tiamat.IsReady() && !W.IsReady()
+                                && !IsWUsed && Q.IsReady())
+                                tiamat.Cast();
+                            if (titanic.IsOwned() && Player.Distance(target) < titanic.Range && titanic.IsReady() && !W.IsReady()
+                                    && !IsWUsed && Q.IsReady())
+                                titanic.Cast();
+                        }
+
                     }
 
                     // Jungleclear 
@@ -199,51 +212,24 @@ namespace NoobRenekton
                 }
             };
         }
-
-        static int CanKill(Obj_AI_Hero target, bool useq)
-        {
-            double damage = 0;
-            if (!useq)
-                return 0;
-            if (Q.IsReady())
-            {
-                damage += ObjectManager.Player.GetSpellDamage(target, SpellSlot.Q);
-            }
-            if (damage >= target.Health)
-            {
-                return 1;
-            }
-            return damage >= target.Health ? 2 : 0;
-
-        }
         private static void Killsteal()
         {
-            foreach (Obj_AI_Hero enemy in AllEnemy)
+            Obj_AI_Hero qTarget = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
+            if (qTarget == null || qTarget.HasBuffOfType(BuffType.Invulnerability))
+                return;
             {
-                if (enemy == null || enemy.HasBuffOfType(BuffType.Invulnerability))
-                    return;
+                double damage = 0d;
+                damage = ObjectManager.Player.GetSpellDamage(qTarget, SpellSlot.Q);
 
-                if (CanKill(enemy, _menu.Item("Killsteal").GetValue<bool>()) == 1 && enemy.IsValidTarget(390))
+                if (damage > qTarget.Health)
                 {
-                    Q.Cast(enemy);
-                    return;
+                    Q.Cast(qTarget);
                 }
             }
         }
 
         private static void OnAa(AttackableUnit unit, AttackableUnit target)
-        {
-            if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo)
-            {
-                if (hydra.IsOwned() && Player.Distance(target) < hydra.Range && hydra.IsReady() && !W.IsReady()
-                    && !IsWUsed)
-                    hydra.Cast();
-                if (tiamat.IsOwned() && Player.Distance(target) < tiamat.Range && tiamat.IsReady() && !W.IsReady()
-                    && !IsWUsed)
-                    tiamat.Cast();
-                if (titanic.IsOwned() && Player.Distance(target) < titanic.Range && titanic.IsReady() && !W.IsReady()
-                        && !IsWUsed) titanic.Cast();
-            }
+        {          
             if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed)
             {
                 if (hydra.IsOwned() && Player.Distance(target) < hydra.Range && hydra.IsReady() && !W.IsReady()
